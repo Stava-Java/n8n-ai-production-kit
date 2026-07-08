@@ -35,9 +35,13 @@ If you can fill in a form, you can use it.
 | PK-02 | Dead Letter Queue Writer | Stores failed payloads so they're never lost |
 | PK-03 | Manual Dead Letter Replay | Re-runs failed payloads with capped retries and status tracking |
 | PK-04 | Idempotency Ledger | Deterministic event keys so re-runs never duplicate records |
-| PK-05 | AI Token & Cost Monitor | Daily OpenAI + Anthropic spend tracking with threshold alerts |
-| PK-06 | GitHub Workflow Backup | Nightly backup of all workflows, committing only real changes |
+| PK-05 | AI Token & Cost Monitor | Daily OpenAI + Anthropic spend tracking with threshold alerts *(optional - needs an AI admin API key)* |
+| PK-06 | GitHub Workflow Backup | Nightly backup of all workflows, committing only real changes *(optional - needs a GitHub token)* |
 | PK-07 | Pre-Export Security Scanner | Scans your workflows for leaked keys, tokens, and real emails |
+
+**New here? You don't need all 8 or any API keys to start.** The core
+(PK-00 through PK-04 and PK-07) runs on a free n8n Cloud account with nothing
+but a Slack channel. PK-05 and PK-06 are optional add-ons for later.
 
 Plus full docs: [INSTALL](products/n8n-ai-production-kit/docs/INSTALL.md) ·
 [TROUBLESHOOTING](products/n8n-ai-production-kit/docs/TROUBLESHOOTING.md) ·
@@ -46,7 +50,18 @@ Plus full docs: [INSTALL](products/n8n-ai-production-kit/docs/INSTALL.md) ·
 [CHANGELOG](products/n8n-ai-production-kit/docs/CHANGELOG.md), plus fake test
 data for safe testing.
 
-## Quick start (about 20 minutes)
+## Fastest start (core working in ~5 minutes)
+
+1. Sign up free at [n8n.io](https://n8n.io) (runs in your browser).
+2. Import `00-setup-data-tables.json` and click **Execute** once.
+3. Import `01-central-error-logger.json`, open its **Alert Settings** node,
+   paste your Slack channel ID, connect Slack, and **Publish**.
+4. On any workflow you want watched: Settings → Error Workflow → pick PK-01.
+
+That's a working production error-logger. Add PK-02/03/04/07 the same way when
+you want them. Full walkthrough below.
+
+## Full setup (about 20 minutes)
 
 1. **Get n8n** - sign up free at [n8n.io](https://n8n.io) (runs in your
    browser) or self-host. No other accounts required to start.
