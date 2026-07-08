@@ -1,0 +1,189 @@
+{
+  "name": "PK-02 Dead Letter Queue Writer",
+  "nodes": [
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            { "name": "source_workflow" },
+            { "name": "event_key" },
+            { "name": "payload" },
+            { "name": "error_message" },
+            { "name": "failed_node" },
+            { "name": "replay_target_url" }
+          ]
+        }
+      },
+      "id": "9f1a2b30-0002-4c02-9a02-000000000001",
+      "name": "When Called By Another Workflow",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [-660, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Validate input, then build the dead-letter record.\n// Rejecting bad writes loudly beats storing garbage silently.\nconst REQUIRED = ['source_workflow', 'event_key', 'payload'];\n\nconst SECRET_PATTERNS = [\n  new RegExp('sk' + '-[A-Za-z0-9_-]{10,}', 'g'),\n  new RegExp('xox' + 'b-[A-Za-z0-9-]{10,}', 'g'),\n  new RegExp('gh' + 'p_[A-Za-z0-9]{20,}', 'g'),\n  new RegExp('Bearer\\\\s+[A-Za-z0-9._~+/-]{15,}', 'gi'),\n];\n\nfunction sanitize(value) {\n  let out = String(value == null ? '' : value);\n  for (const pattern of SECRET_PATTERNS) {\n    out = out.replace(pattern, '[REDACTED]');\n  }\n  return out.slice(0, 2000);\n}\n\nconst results = [];\nfor (const item of $input.all()) {\n  const data = item.json || {};\n  const missing = REQUIRED.filter((f) => {\n    const v = data[f];\n    return v === undefined || v === null || v === '';\n  });\n  if (missing.length > 0) {\n    throw new Error(\n      'Dead-letter write rejected: missing required field(s): ' +\n        missing.join(', ') +\n        '. Callers must send source_workflow, event_key, and payload.'\n    );\n  }\n\n  let payloadJson = '';\n  try {\n    payloadJson =\n      typeof data.payload === 'string'\n        ? data.payload\n        : JSON.stringify(data.payload);\n  } catch (e) {\n    throw new Error('Dead-letter write rejected: payload is not serializable: ' + e.message);\n  }\n\n  const receivedAt = new Date().toISOString();\n  results.push({\n    json: {\n      dlq_id: String(data.event_key) + '-' + Date.now(),\n      received_at: receivedAt,\n      source_workflow: String(data.source_workflow),\n      event_key: String(data.event_key),\n      failed_node: sanitize(data.failed_node || 'unknown'),\n      error_message: sanitize(data.error_message || ''),\n      payload_json: payloadJson.slice(0, 45000),\n      replay_target_url: String(data.replay_target_url || ''),\n      status: 'pending',\n      retry_count: 0,\n      last_error: '',\n      replayed_at: '',\n    },\n  });\n}\nreturn results;"
+      },
+      "id": "9f1a2b30-0002-4c02-9a02-000000000002",
+      "name": "Validate And Build Record",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-440, 0]
+    },
+    {
+      "parameters": {
+        "resource": "row",
+        "operation": "insert",
+        "dataTableId": {
+          "__rl": true,
+          "value": "dead_letter",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "schema": []
+        },
+        "options": {}
+      },
+      "id": "9f1a2b30-0002-4c02-9a02-000000000003",
+      "name": "Insert Dead Letter Row",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [-220, 0],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "set-slack-channel",
+              "name": "slack_channel_id",
+              "value": "REPLACE_WITH_SLACK_CHANNEL_ID",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "9f1a2b30-0002-4c02-9a02-000000000006",
+      "name": "Alert Settings",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [-110, 0],
+      "notes": "EDIT ME: type your Slack channel ID here. The record is already stored before this step."
+    },
+    {
+      "parameters": {
+        "content": "## 🛠 Setup (1 minute)\n1. Open **Alert Settings** and type your Slack channel ID.\n2. Click **Notify Dead Letter Stored** and connect your Slack account.\n3. Publish this workflow.\n\nOther workflows call this one to store failed payloads. To send a payload here, add an **Execute Workflow** node on any error branch and map: source_workflow, event_key, payload (and optionally error_message, failed_node, replay_target_url).",
+        "height": 300,
+        "width": 360
+      },
+      "id": "9f1a2b30-0002-4c02-9a02-000000000007",
+      "name": "Setup Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [-680, -360]
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "={{ $json.slack_channel_id }}",
+          "mode": "id"
+        },
+        "text": "=:package: Dead letter stored\n*Source workflow:* {{ $json.source_workflow }}\n*Event key:* {{ $json.event_key }}\n*Failed node:* {{ $json.failed_node }}\n*Error:* {{ $json.error_message }}\nReplay with PK-03 when the root cause is fixed.",
+        "otherOptions": {}
+      },
+      "id": "9f1a2b30-0002-4c02-9a02-000000000004",
+      "name": "Notify Dead Letter Stored",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.2,
+      "position": [0, 0],
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 2000,
+      "onError": "continueRegularOutput",
+      "notes": "Alerting is best-effort. The record is already stored; a Slack outage must not fail the write."
+    },
+    {
+      "parameters": {
+        "jsCode": "// Return a small, stable result to the calling workflow.\n// Read from the validated record, not the pass-through input: if the\n// best-effort Slack notify errored, its pass-through item would not\n// carry the record fields.\nreturn $('Validate And Build Record').all().map((item) => ({\n  json: {\n    stored: true,\n    dlq_id: item.json.dlq_id,\n    event_key: item.json.event_key,\n    status: item.json.status,\n  },\n}));"
+      },
+      "id": "9f1a2b30-0002-4c02-9a02-000000000005",
+      "name": "Return Result",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [220, 0]
+    }
+  ],
+  "connections": {
+    "When Called By Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Validate And Build Record",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate And Build Record": {
+      "main": [
+        [
+          {
+            "node": "Insert Dead Letter Row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert Dead Letter Row": {
+      "main": [
+        [
+          {
+            "node": "Alert Settings",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Alert Settings": {
+      "main": [
+        [
+          {
+            "node": "Notify Dead Letter Stored",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notify Dead Letter Stored": {
+      "main": [
+        [
+          {
+            "node": "Return Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": false
+  }
+}

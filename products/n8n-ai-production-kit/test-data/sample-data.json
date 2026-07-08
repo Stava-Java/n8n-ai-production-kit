@@ -1,0 +1,81 @@
+{
+  "_readme": "Fake records only. Every email is @example.com, every ID is invented, every key placeholder is deliberately shaped so it can NOT be mistaken for a real credential. Used by INSTALL.md section 6.",
+  "dead_letter_examples": [
+    {
+      "source_workflow": "client-lead-enrichment",
+      "event_key": "lead-8841",
+      "payload": {
+        "lead_id": "8841",
+        "email": "jane.doe@example.com",
+        "company": "Acme Rockets LLC",
+        "requested_enrichment": ["company_size", "industry"]
+      },
+      "error_message": "Enrichment API returned 503 after 3 retries",
+      "failed_node": "Call Enrichment API",
+      "replay_target_url": "https://webhook.example.com/replay/lead-enrichment"
+    },
+    {
+      "source_workflow": "invoice-sync",
+      "event_key": "invoice-INV-2209",
+      "payload": {
+        "invoice_id": "INV-2209",
+        "customer": "Globex Corporation",
+        "amount_usd": 1250.0,
+        "due_date": "2026-08-01"
+      },
+      "error_message": "Accounting API rejected payload: unknown tax code",
+      "failed_node": "Push To Accounting",
+      "replay_target_url": ""
+    }
+  ],
+  "idempotency_examples": [
+    { "source": "stripe-invoice-sync", "event_id": "in_FAKE001" },
+    { "source": "stripe-invoice-sync", "event_id": "in_FAKE001" },
+    { "source": "ai-cost-monitor", "event_id": "aicost::openai::2026-07-04" }
+  ],
+  "error_trigger_example": {
+    "execution": {
+      "id": "99123",
+      "url": "https://n8n.example.com/execution/99123",
+      "mode": "trigger",
+      "lastNodeExecuted": "Call Enrichment API",
+      "error": {
+        "message": "connect ETIMEDOUT 203.0.113.10:443",
+        "description": "The enrichment service did not respond within 15 seconds"
+      }
+    },
+    "workflow": {
+      "id": "42",
+      "name": "client-lead-enrichment"
+    }
+  },
+  "openai_costs_response_example": {
+    "object": "page",
+    "data": [
+      {
+        "start_time": 1751587200,
+        "end_time": 1751673600,
+        "results": [
+          { "object": "organization.costs.result", "amount": { "value": 4.2311, "currency": "usd" } }
+        ]
+      }
+    ],
+    "has_more": false
+  },
+  "anthropic_cost_report_response_example": {
+    "data": [
+      {
+        "starting_at": "2026-07-04T00:00:00Z",
+        "ending_at": "2026-07-05T00:00:00Z",
+        "results": [
+          { "amount": "2.8890", "currency": "USD", "description": "Claude API usage" }
+        ]
+      }
+    ],
+    "has_more": false
+  },
+  "license_worker_responses": {
+    "valid": { "valid": true, "product_id": "FAKE_PRODUCT_ID", "uses": 3 },
+    "invalid": { "valid": false, "reason": "license_not_found" }
+  }
+}

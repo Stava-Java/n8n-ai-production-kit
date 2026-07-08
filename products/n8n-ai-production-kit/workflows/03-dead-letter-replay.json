@@ -1,0 +1,437 @@
+{
+  "name": "PK-03 Manual Dead Letter Replay",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "9f1a2b30-0003-4c03-9a03-000000000001",
+      "name": "Run Replay Manually",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [-1100, 0]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "set-max-retries",
+              "name": "max_retries",
+              "value": 5,
+              "type": "number"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "9f1a2b30-0003-4c03-9a03-000000000012",
+      "name": "Replay Settings",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [-880, 0],
+      "notes": "EDIT ME: how many replay attempts before a row is marked failed."
+    },
+    {
+      "parameters": {
+        "content": "## 🛠 How to use\nFix the root cause of the failure first, then click **Execute workflow**.\n\nEach pending dead letter is re-sent to its stored replay URL:\n- success → row marked **replayed**\n- failure → retry count goes up; after the max (see **Replay Settings**) the row is marked **failed**\n- no replay URL stored → **skipped_no_target**\n\nCheck results in the `dead_letter` Data Table (left sidebar → Data Tables).",
+        "height": 300,
+        "width": 360
+      },
+      "id": "9f1a2b30-0003-4c03-9a03-000000000013",
+      "name": "Setup Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [-1100, -360]
+    },
+    {
+      "parameters": {
+        "resource": "row",
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "value": "dead_letter",
+          "mode": "name"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "status",
+              "condition": "eq",
+              "keyValue": "pending"
+            }
+          ]
+        },
+        "returnAll": true
+      },
+      "id": "9f1a2b30-0003-4c03-9a03-000000000002",
+      "name": "Read Dead Letter Rows",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [-660, 0],
+      "alwaysOutputData": true,
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000
+    },
+    {
+      "parameters": {
+        "jsCode": "// Only replay rows that are pending and under the retry cap.\n// Replay is deliberately manual: fix the root cause first, then replay.\nconst maxRetries = Number($('Replay Settings').first().json.max_retries || 5);\n\nconst rows = $input\n  .all()\n  .map((i) => i.json)\n  .filter((r) => r && r.dlq_id);\n\nconst replayable = rows.filter(\n  (r) =>\n    String(r.status) === 'pending' &&\n    Number(r.retry_count || 0) < maxRetries\n);\n\n// Returning zero items ends the run cleanly: nothing to replay.\nreturn replayable.map((r) => ({\n  json: {\n    dlq_id: String(r.dlq_id),\n    event_key: String(r.event_key || ''),\n    source_workflow: String(r.source_workflow || ''),\n    payload_json: String(r.payload_json || '{}'),\n    replay_target_url: String(r.replay_target_url || ''),\n    retry_count: Number(r.retry_count || 0),\n  },\n}));"
+      },
+      "id": "9f1a2b30-0003-4c03-9a03-000000000003",
+      "name": "Select Replayable Rows",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-440, 0]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "9f1a2b30-0003-4c03-9a03-000000000004",
+      "name": "Replay Loop",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [-220, 0]
+    },
+    {
+      "parameters": {},
+      "id": "9f1a2b30-0003-4c03-9a03-000000000005",
+      "name": "Replay Finished",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [0, -180],
+      "notes": "Check the dead_letter Data Table for per-row results: replayed, pending (will retry), failed (retry cap hit), skipped_no_target."
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "has-target",
+              "leftValue": "={{ $json.replay_target_url }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "9f1a2b30-0003-4c03-9a03-000000000006",
+      "name": "Has Replay Target?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [0, 60]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.replay_target_url }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.payload_json }}",
+        "options": {
+          "timeout": 15000
+        }
+      },
+      "id": "9f1a2b30-0003-4c03-9a03-000000000007",
+      "name": "Replay To Target",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [220, -40],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000,
+      "onError": "continueErrorOutput",
+      "notes": "Retries are capped to short waits. If the target needs auth, attach an n8n credential here — never paste a key into the URL or headers."
+    },
+    {
+      "parameters": {
+        "resource": "row",
+        "operation": "update",
+        "dataTableId": {
+          "__rl": true,
+          "value": "dead_letter",
+          "mode": "name"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "dlq_id",
+              "condition": "eq",
+              "keyValue": "={{ $('Replay Loop').item.json.dlq_id }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "status": "replayed",
+            "replayed_at": "={{ $now.toISO() }}",
+            "last_error": ""
+          },
+          "schema": []
+        },
+        "options": {}
+      },
+      "id": "9f1a2b30-0003-4c03-9a03-000000000008",
+      "name": "Mark Replayed",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [440, -120],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000
+    },
+    {
+      "parameters": {
+        "jsCode": "// Replay failed: increment the retry counter and keep a sanitized error.\n// When the cap is reached, mark the row failed so humans investigate.\nconst maxRetries = Number($('Replay Settings').first().json.max_retries || 5);\nconst row = $('Replay Loop').item.json;\nconst err = $input.first().json || {};\nconst nextRetryCount = Number(row.retry_count || 0) + 1;\nconst message = String(\n  (err.error && err.error.message) || err.message || 'replay request failed'\n).slice(0, 500);\n\nreturn [\n  {\n    json: {\n      dlq_id: row.dlq_id,\n      retry_count: nextRetryCount,\n      last_error: message,\n      status: nextRetryCount >= maxRetries ? 'failed' : 'pending',\n    },\n  },\n];"
+      },
+      "id": "9f1a2b30-0003-4c03-9a03-000000000009",
+      "name": "Build Failure Update",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [440, 40]
+    },
+    {
+      "parameters": {
+        "resource": "row",
+        "operation": "update",
+        "dataTableId": {
+          "__rl": true,
+          "value": "dead_letter",
+          "mode": "name"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "dlq_id",
+              "condition": "eq",
+              "keyValue": "={{ $json.dlq_id }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "retry_count": "={{ $json.retry_count }}",
+            "last_error": "={{ $json.last_error }}",
+            "status": "={{ $json.status }}"
+          },
+          "schema": []
+        },
+        "options": {}
+      },
+      "id": "9f1a2b30-0003-4c03-9a03-000000000010",
+      "name": "Update Replay Failure Row",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [660, 40],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000
+    },
+    {
+      "parameters": {
+        "resource": "row",
+        "operation": "update",
+        "dataTableId": {
+          "__rl": true,
+          "value": "dead_letter",
+          "mode": "name"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "dlq_id",
+              "condition": "eq",
+              "keyValue": "={{ $json.dlq_id }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "status": "skipped_no_target",
+            "last_error": "No replay_target_url stored for this row"
+          },
+          "schema": []
+        },
+        "options": {}
+      },
+      "id": "9f1a2b30-0003-4c03-9a03-000000000011",
+      "name": "Mark Skipped No Target",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [220, 180],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000
+    }
+  ],
+  "connections": {
+    "Run Replay Manually": {
+      "main": [
+        [
+          {
+            "node": "Replay Settings",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Replay Settings": {
+      "main": [
+        [
+          {
+            "node": "Read Dead Letter Rows",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Dead Letter Rows": {
+      "main": [
+        [
+          {
+            "node": "Select Replayable Rows",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Select Replayable Rows": {
+      "main": [
+        [
+          {
+            "node": "Replay Loop",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Replay Loop": {
+      "main": [
+        [
+          {
+            "node": "Replay Finished",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Has Replay Target?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Replay Target?": {
+      "main": [
+        [
+          {
+            "node": "Replay To Target",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Mark Skipped No Target",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Replay To Target": {
+      "main": [
+        [
+          {
+            "node": "Mark Replayed",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Build Failure Update",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mark Replayed": {
+      "main": [
+        [
+          {
+            "node": "Replay Loop",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Failure Update": {
+      "main": [
+        [
+          {
+            "node": "Update Replay Failure Row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Replay Failure Row": {
+      "main": [
+        [
+          {
+            "node": "Replay Loop",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mark Skipped No Target": {
+      "main": [
+        [
+          {
+            "node": "Replay Loop",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": false
+  }
+}

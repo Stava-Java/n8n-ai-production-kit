@@ -1,0 +1,181 @@
+{
+  "name": "PK-00 Setup Data Tables",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "9f1a2b30-0000-4c00-9a00-000000000001",
+      "name": "Run Setup Manually",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [-880, 0]
+    },
+    {
+      "parameters": {
+        "content": "## 🛠 Run me first (one click)\nClick **Execute workflow** once. That's the entire setup.\n\nThis creates the kit's four storage tables inside n8n itself — no Google account, no database, no server needed.\n\nAfterwards, check the left sidebar → **Data Tables**: you should see error_log, dead_letter, idempotency_ledger, and ai_cost_log. Safe to run again — it never duplicates tables.",
+        "height": 300,
+        "width": 360
+      },
+      "id": "9f1a2b30-0000-4c00-9a00-000000000006",
+      "name": "Setup Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [-880, -360]
+    },
+    {
+      "parameters": {
+        "resource": "table",
+        "operation": "create",
+        "tableName": "error_log",
+        "columns": {
+          "column": [
+            { "name": "logged_at", "type": "string" },
+            { "name": "workflow_id", "type": "string" },
+            { "name": "workflow_name", "type": "string" },
+            { "name": "execution_id", "type": "string" },
+            { "name": "execution_url", "type": "string" },
+            { "name": "execution_mode", "type": "string" },
+            { "name": "failed_node", "type": "string" },
+            { "name": "error_message", "type": "string" },
+            { "name": "error_description", "type": "string" }
+          ]
+        },
+        "options": { "createIfNotExists": true }
+      },
+      "id": "9f1a2b30-0000-4c00-9a00-000000000002",
+      "name": "Create error_log",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [-660, 0],
+      "notes": "Creates the internal error_log table if it does not already exist."
+    },
+    {
+      "parameters": {
+        "resource": "table",
+        "operation": "create",
+        "tableName": "dead_letter",
+        "columns": {
+          "column": [
+            { "name": "dlq_id", "type": "string" },
+            { "name": "received_at", "type": "string" },
+            { "name": "source_workflow", "type": "string" },
+            { "name": "event_key", "type": "string" },
+            { "name": "failed_node", "type": "string" },
+            { "name": "error_message", "type": "string" },
+            { "name": "payload_json", "type": "string" },
+            { "name": "replay_target_url", "type": "string" },
+            { "name": "status", "type": "string" },
+            { "name": "retry_count", "type": "number" },
+            { "name": "last_error", "type": "string" },
+            { "name": "replayed_at", "type": "string" }
+          ]
+        },
+        "options": { "createIfNotExists": true }
+      },
+      "id": "9f1a2b30-0000-4c00-9a00-000000000003",
+      "name": "Create dead_letter",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [-440, 0],
+      "notes": "Creates the internal dead_letter table if it does not already exist."
+    },
+    {
+      "parameters": {
+        "resource": "table",
+        "operation": "create",
+        "tableName": "idempotency_ledger",
+        "columns": {
+          "column": [
+            { "name": "event_key", "type": "string" },
+            { "name": "source", "type": "string" },
+            { "name": "event_id", "type": "string" },
+            { "name": "first_seen_at", "type": "string" }
+          ]
+        },
+        "options": { "createIfNotExists": true }
+      },
+      "id": "9f1a2b30-0000-4c00-9a00-000000000004",
+      "name": "Create idempotency_ledger",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [-220, 0],
+      "notes": "Creates the internal idempotency_ledger table if it does not already exist."
+    },
+    {
+      "parameters": {
+        "resource": "table",
+        "operation": "create",
+        "tableName": "ai_cost_log",
+        "columns": {
+          "column": [
+            { "name": "provider", "type": "string" },
+            { "name": "usage_date", "type": "string" },
+            { "name": "estimated_cost_usd", "type": "number" },
+            { "name": "parse_error", "type": "string" },
+            { "name": "event_key", "type": "string" },
+            { "name": "recorded_at", "type": "string" }
+          ]
+        },
+        "options": { "createIfNotExists": true }
+      },
+      "id": "9f1a2b30-0000-4c00-9a00-000000000005",
+      "name": "Create ai_cost_log",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [0, 0],
+      "notes": "Creates the internal ai_cost_log table if it does not already exist."
+    }
+  ],
+  "connections": {
+    "Run Setup Manually": {
+      "main": [
+        [
+          {
+            "node": "Create error_log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create error_log": {
+      "main": [
+        [
+          {
+            "node": "Create dead_letter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create dead_letter": {
+      "main": [
+        [
+          {
+            "node": "Create idempotency_ledger",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create idempotency_ledger": {
+      "main": [
+        [
+          {
+            "node": "Create ai_cost_log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": true
+  }
+}

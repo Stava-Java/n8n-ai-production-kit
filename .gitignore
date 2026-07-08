@@ -1,0 +1,18 @@
+# Release ZIPs ship as GitHub Release assets (for download tracking), not in the repo
+*.zip
+
+# Local environment
+.env
+
+# Internal / not for the public repo
+shared/listing-templates/gumroad-listing.md
+launch/
+
+# Raw un-cropped screenshot dumps (final numbered images are kept)
+products/n8n-ai-production-kit/screenshots/Screenshot*.png
+
+# OS / editor cruft
+.DS_Store
+Thumbs.db
+desktop.ini
+*.swp

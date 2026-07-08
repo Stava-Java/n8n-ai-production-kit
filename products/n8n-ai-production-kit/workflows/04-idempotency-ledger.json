@@ -1,0 +1,227 @@
+{
+  "name": "PK-04 Idempotency Ledger",
+  "nodes": [
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            { "name": "source" },
+            { "name": "event_id" }
+          ]
+        }
+      },
+      "id": "9f1a2b30-0004-4c04-9a04-000000000001",
+      "name": "When Called By Another Workflow",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [-660, 0]
+    },
+    {
+      "parameters": {
+        "content": "## 🛠 How to use\nNo settings needed — just **publish** this workflow.\n\nFrom any workflow, add an **Execute Workflow** node pointing here and send:\n- `source` — a stable name for the process (e.g. \"stripe-invoice-sync\")\n- `event_id` — a stable ID for the event (e.g. the invoice ID)\n\nIt answers `duplicate: true/false`. Add an IF node after the call and skip the item when duplicate is true — that's what stops double-charging, double-sending, and double-logging on re-runs.",
+        "height": 320,
+        "width": 380
+      },
+      "id": "9f1a2b30-0004-4c04-9a04-000000000008",
+      "name": "Setup Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [-660, -380]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Build a deterministic event key. Same source + event_id must always\n// produce the same key, or repeated runs will duplicate records.\nfunction fnv1a(str) {\n  let hash = 0x811c9dc5;\n  for (let i = 0; i < str.length; i++) {\n    hash ^= str.charCodeAt(i);\n    hash = Math.imul(hash, 0x01000193) >>> 0;\n  }\n  return hash.toString(16).padStart(8, '0');\n}\n\nconst normalize = (v) => String(v).trim().toLowerCase();\n\nconst results = [];\nfor (const item of $input.all()) {\n  const data = item.json || {};\n  if (!data.source || !data.event_id) {\n    throw new Error(\n      'Idempotency check rejected: source and event_id are both required. ' +\n        'Use stable values, e.g. source=\"stripe-invoice-sync\", event_id=\"in_1ABC\".'\n    );\n  }\n  const composite = normalize(data.source) + '::' + normalize(data.event_id);\n  results.push({\n    json: {\n      event_key: ('evt-' + fnv1a(composite) + '-' + composite).slice(0, 180),\n      source: normalize(data.source),\n      event_id: String(data.event_id).trim(),\n    },\n  });\n}\nreturn results;"
+      },
+      "id": "9f1a2b30-0004-4c04-9a04-000000000002",
+      "name": "Validate And Build Key",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-440, 0]
+    },
+    {
+      "parameters": {
+        "resource": "row",
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "value": "idempotency_ledger",
+          "mode": "name"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "event_key",
+              "condition": "eq",
+              "keyValue": "={{ $json.event_key }}"
+            }
+          ]
+        },
+        "returnAll": false,
+        "limit": 1
+      },
+      "id": "9f1a2b30-0004-4c04-9a04-000000000003",
+      "name": "Look Up Event Key",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [-220, 0],
+      "alwaysOutputData": true,
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000,
+      "notes": "alwaysOutputData is on so a miss produces one empty item and the IF below can route it. Run PK-00 Setup Data Tables first."
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "seen-before",
+              "leftValue": "={{ $json.event_key }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "9f1a2b30-0004-4c04-9a04-000000000004",
+      "name": "Seen Before?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [0, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Duplicate: report it. The caller decides to skip.\nconst key = $('Validate And Build Key').item.json;\nconst existing = $input.first().json || {};\nreturn [\n  {\n    json: {\n      duplicate: true,\n      event_key: key.event_key,\n      source: key.source,\n      event_id: key.event_id,\n      first_seen_at: existing.first_seen_at || '',\n    },\n  },\n];"
+      },
+      "id": "9f1a2b30-0004-4c04-9a04-000000000005",
+      "name": "Return Duplicate",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [220, -100]
+    },
+    {
+      "parameters": {
+        "resource": "row",
+        "operation": "insert",
+        "dataTableId": {
+          "__rl": true,
+          "value": "idempotency_ledger",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "event_key": "={{ $('Validate And Build Key').item.json.event_key }}",
+            "source": "={{ $('Validate And Build Key').item.json.source }}",
+            "event_id": "={{ $('Validate And Build Key').item.json.event_id }}",
+            "first_seen_at": "={{ $now.toISO() }}"
+          },
+          "schema": []
+        },
+        "options": {}
+      },
+      "id": "9f1a2b30-0004-4c04-9a04-000000000006",
+      "name": "Insert New Event Row",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [220, 100],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000
+    },
+    {
+      "parameters": {
+        "jsCode": "// First time we see this event.\nreturn $input.all().map((item) => ({\n  json: {\n    duplicate: false,\n    event_key: item.json.event_key,\n    source: item.json.source,\n    event_id: item.json.event_id,\n    first_seen_at: item.json.first_seen_at,\n  },\n}));"
+      },
+      "id": "9f1a2b30-0004-4c04-9a04-000000000007",
+      "name": "Return New",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [440, 100]
+    }
+  ],
+  "connections": {
+    "When Called By Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Validate And Build Key",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate And Build Key": {
+      "main": [
+        [
+          {
+            "node": "Look Up Event Key",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Look Up Event Key": {
+      "main": [
+        [
+          {
+            "node": "Seen Before?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Seen Before?": {
+      "main": [
+        [
+          {
+            "node": "Return Duplicate",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Insert New Event Row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert New Event Row": {
+      "main": [
+        [
+          {
+            "node": "Return New",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": false
+  }
+}

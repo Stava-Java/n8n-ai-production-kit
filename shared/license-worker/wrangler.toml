@@ -1,0 +1,10 @@
+name = "gumroad-license-worker"
+main = "worker.js"
+compatibility_date = "2026-07-01"
+
+[vars]
+# Comma-separated Gumroad product IDs this worker will verify.
+# Find the product ID in the Gumroad product settings / API section.
+ALLOWED_PRODUCT_IDS = "REPLACE_WITH_GUMROAD_PRODUCT_ID"
+# "true" to increment Gumroad's uses counter on every check (spot shared keys).
+INCREMENT_USES_COUNT = "false"

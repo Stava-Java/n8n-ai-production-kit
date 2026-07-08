@@ -1,0 +1,161 @@
+{
+  "name": "PK-07 Pre-Export Security Scanner",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "9f1a2b30-0007-4c07-9a07-000000000001",
+      "name": "Run Scan Manually",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [-880, 0]
+    },
+    {
+      "parameters": {
+        "content": "## 🛠 How to use\n1. Click **List Workflows To Scan** → add an **n8n API** credential once (in n8n: Settings → n8n API → Create key, paste it in).\n2. Click **Execute workflow**.\n\nIt scans **every workflow in this n8n** for anything that looks like an API key, token, or real email address — run it before you export workflows to share with a client or publish anywhere.\n\nGreen **PASS** node = clean. Red-flagged? Open **FAIL — Review Findings** to see which workflow and a masked preview of each hit.",
+        "height": 340,
+        "width": 400
+      },
+      "id": "9f1a2b30-0007-4c07-9a07-000000000008",
+      "name": "Setup Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [-880, -400]
+    },
+    {
+      "parameters": {
+        "resource": "workflow",
+        "operation": "getAll",
+        "returnAll": true,
+        "filters": {},
+        "requestOptions": {}
+      },
+      "id": "9f1a2b30-0007-4c07-9a07-000000000002",
+      "name": "List Workflows To Scan",
+      "type": "n8n-nodes-base.n8n",
+      "typeVersion": 1,
+      "position": [-660, 0],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000,
+      "notes": "Uses the built-in n8n API node - works on n8n Cloud and self-hosted. No file access or environment variables needed."
+    },
+    {
+      "parameters": {
+        "jsCode": "// Scan every workflow definition for anything that looks like a secret\n// or a real email address.\n// Patterns are built by concatenation so this scanner never flags itself.\nconst PATTERNS = [\n  ['openai_style_key', 'sk' + '-[A-Za-z0-9_-]{10,}'],\n  ['slack_bot_token', 'xox' + 'b-[A-Za-z0-9-]{10,}'],\n  ['github_token', 'gh' + 'p_[A-Za-z0-9]{20,}'],\n  ['github_fine_grained_pat', 'github' + '_pat_[A-Za-z0-9_]{20,}'],\n  ['aws_access_key_id', 'AKIA' + '[0-9A-Z]{16}'],\n  ['bearer_header_literal', 'Bearer ' + '[A-Za-z0-9._~+/=-]{15,}'],\n  ['real_email_address', '[A-Za-z0-9._%+-]+@(?!example\\\\.com|example\\\\.org|example\\\\.net)[A-Za-z0-9-]+(\\\\.[A-Za-z0-9-]+)*\\\\.[A-Za-z]{2,}'],\n];\n\nfunction mask(value) {\n  const s = String(value);\n  return s.length <= 6 ? s[0] + '***' : s.slice(0, 4) + '***' + s.slice(-2);\n}\n\nconst results = [];\nfor (const item of $input.all()) {\n  const wf = item.json || {};\n  const workflowName = String(wf.name || 'unnamed workflow');\n  let text = '';\n  try {\n    text = JSON.stringify(wf);\n  } catch (e) {\n    results.push({\n      json: {\n        workflow_name: workflowName,\n        status: 'error',\n        finding_count: 0,\n        findings: [],\n        note: 'Could not serialize this workflow - inspect it manually.',\n      },\n    });\n    continue;\n  }\n\n  const findings = [];\n  for (const [label, source] of PATTERNS) {\n    const regex = new RegExp(source, 'g');\n    let match;\n    let count = 0;\n    while ((match = regex.exec(text)) !== null && count < 20) {\n      findings.push({ pattern: label, match_preview: mask(match[0]) });\n      count++;\n    }\n  }\n\n  results.push({\n    json: {\n      workflow_name: workflowName,\n      status: findings.length === 0 ? 'pass' : 'fail',\n      finding_count: findings.length,\n      findings,\n      note:\n        findings.length === 0\n          ? 'Clean.'\n          : 'DO NOT EXPORT OR SHARE. Move the value into an n8n credential, then re-run.',\n    },\n  });\n}\nreturn results;"
+      },
+      "id": "9f1a2b30-0007-4c07-9a07-000000000004",
+      "name": "Scan For Secrets",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-440, 0]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "has-findings",
+              "leftValue": "={{ $json.finding_count }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "9f1a2b30-0007-4c07-9a07-000000000005",
+      "name": "Any Findings?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [-220, 0]
+    },
+    {
+      "parameters": {},
+      "id": "9f1a2b30-0007-4c07-9a07-000000000006",
+      "name": "FAIL - Review Findings",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [0, -100],
+      "notes": "Open this node's output: workflow name, pattern, and a masked preview of every hit. Fix each one (move values into n8n credentials) and re-run until everything passes."
+    },
+    {
+      "parameters": {},
+      "id": "9f1a2b30-0007-4c07-9a07-000000000007",
+      "name": "PASS - Clean",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [0, 100],
+      "notes": "No secret-shaped values or real emails found in these workflows."
+    }
+  ],
+  "connections": {
+    "Run Scan Manually": {
+      "main": [
+        [
+          {
+            "node": "List Workflows To Scan",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "List Workflows To Scan": {
+      "main": [
+        [
+          {
+            "node": "Scan For Secrets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Scan For Secrets": {
+      "main": [
+        [
+          {
+            "node": "Any Findings?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Any Findings?": {
+      "main": [
+        [
+          {
+            "node": "FAIL - Review Findings",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "PASS - Clean",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": false
+  }
+}

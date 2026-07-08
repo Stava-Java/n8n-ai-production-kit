@@ -1,0 +1,19 @@
+# Optional: local self-hosted n8n for advanced users (see INSTALL.md Appendix A).
+# n8n Cloud users do not need this file at all.
+services:
+  n8n:
+    image: docker.n8n.io/n8nio/n8n:latest
+    container_name: n8n-production-kit
+    restart: unless-stopped
+    ports:
+      - "5678:5678"
+    environment:
+      - N8N_DIAGNOSTICS_ENABLED=false
+      - N8N_HIRING_BANNER_ENABLED=false
+      - GENERIC_TIMEZONE=${GENERIC_TIMEZONE:-America/New_York}
+      - TZ=${GENERIC_TIMEZONE:-America/New_York}
+    volumes:
+      - n8n_data:/home/node/.n8n
+
+volumes:
+  n8n_data:

@@ -1,0 +1,393 @@
+{
+  "name": "PK-06 GitHub Workflow Backup",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "days",
+              "triggerAtHour": 3,
+              "triggerAtMinute": 0
+            }
+          ]
+        }
+      },
+      "id": "9f1a2b30-0006-4c06-9a06-000000000001",
+      "name": "Run Nightly",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [-1320, 0]
+    },
+    {
+      "parameters": {
+        "content": "## 🛠 Setup (5 minutes)\n1. Create a private GitHub repo for backups (e.g. `n8n-workflow-backups`).\n2. Open **Backup Settings** and type your GitHub username and that repo name.\n3. Click **List n8n Workflows** → add an **n8n API** credential: in n8n go to Settings → n8n API → Create key, paste it in. (Base URL: your n8n address + `/api/v1`.)\n4. Click each GitHub node → connect a GitHub credential (token with `repo` scope).\n5. Publish. Every night it backs up all workflows and only commits real changes.",
+        "height": 340,
+        "width": 400
+      },
+      "id": "9f1a2b30-0006-4c06-9a06-000000000012",
+      "name": "Setup Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [-1320, -400]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "set-gh-owner",
+              "name": "github_owner",
+              "value": "REPLACE_WITH_YOUR_GITHUB_USERNAME",
+              "type": "string"
+            },
+            {
+              "id": "set-gh-repo",
+              "name": "github_repo",
+              "value": "n8n-workflow-backups",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "9f1a2b30-0006-4c06-9a06-000000000013",
+      "name": "Backup Settings",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [-1100, 0],
+      "notes": "EDIT ME: your GitHub username and backup repo name."
+    },
+    {
+      "parameters": {
+        "resource": "workflow",
+        "operation": "getAll",
+        "returnAll": true,
+        "filters": {},
+        "requestOptions": {}
+      },
+      "id": "9f1a2b30-0006-4c06-9a06-000000000002",
+      "name": "List n8n Workflows",
+      "type": "n8n-nodes-base.n8n",
+      "typeVersion": 1,
+      "position": [-880, 0],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000,
+      "notes": "Uses the built-in n8n API node with an n8n API credential — works on n8n Cloud and self-hosted. No environment variables needed."
+    },
+    {
+      "parameters": {
+        "jsCode": "// One item per workflow with a stable file path and pretty-printed JSON.\n// Volatile fields are stripped so change detection only fires on real edits.\nconst items = $input.all();\nif (items.length === 0) {\n  throw new Error(\n    'The n8n API returned no workflows. Check the n8n API credential on the List n8n Workflows node.'\n  );\n}\n\nreturn items.map((item) => {\n  const wf = item.json || {};\n  const slug =\n    String(wf.name || 'unnamed')\n      .toLowerCase()\n      .replace(/[^a-z0-9]+/g, '-')\n      .replace(/^-+|-+$/g, '')\n      .slice(0, 60) || 'unnamed';\n  const clean = {\n    name: wf.name,\n    nodes: wf.nodes,\n    connections: wf.connections,\n    settings: wf.settings,\n  };\n  return {\n    json: {\n      workflow_id: wf.id,\n      workflow_name: wf.name,\n      file_path: 'workflows/' + slug + '-' + wf.id + '.json',\n      content: JSON.stringify(clean, null, 2),\n    },\n  };\n});"
+      },
+      "id": "9f1a2b30-0006-4c06-9a06-000000000003",
+      "name": "Prepare Backup Files",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-660, 0]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "9f1a2b30-0006-4c06-9a06-000000000004",
+      "name": "Backup Loop",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [-440, 0]
+    },
+    {
+      "parameters": {},
+      "id": "9f1a2b30-0006-4c06-9a06-000000000005",
+      "name": "Backup Complete",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [-220, -180],
+      "notes": "All workflows processed. Only changed files were committed."
+    },
+    {
+      "parameters": {
+        "resource": "file",
+        "operation": "get",
+        "owner": {
+          "__rl": true,
+          "value": "={{ $('Backup Settings').first().json.github_owner }}",
+          "mode": "name"
+        },
+        "repository": {
+          "__rl": true,
+          "value": "={{ $('Backup Settings').first().json.github_repo }}",
+          "mode": "name"
+        },
+        "filePath": "={{ $json.file_path }}",
+        "asBinaryProperty": false,
+        "additionalParameters": {}
+      },
+      "id": "9f1a2b30-0006-4c06-9a06-000000000006",
+      "name": "Get Existing Backup File",
+      "type": "n8n-nodes-base.github",
+      "typeVersion": 1.1,
+      "position": [-220, 60],
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 3000,
+      "onError": "continueErrorOutput",
+      "notes": "404 (file not yet in the repo) flows out of the error output into the create branch."
+    },
+    {
+      "parameters": {
+        "jsCode": "// Compare the existing repo copy against the current export.\n// Both sides are parsed and re-serialized so formatting noise and\n// volatile fields never trigger a commit.\nconst remote = $input.first().json || {};\nconst local = $('Backup Loop').item.json;\n\nlet remoteText = '';\ntry {\n  remoteText = Buffer.from(String(remote.content || ''), 'base64').toString('utf8');\n} catch (e) {\n  remoteText = '';\n}\n\nfunction normalized(text) {\n  try {\n    const wf = JSON.parse(text);\n    delete wf.updatedAt;\n    delete wf.versionId;\n    return JSON.stringify(wf);\n  } catch (e) {\n    return String(text);\n  }\n}\n\nreturn [\n  {\n    json: {\n      changed: normalized(remoteText) !== normalized(local.content),\n      file_path: local.file_path,\n      content: local.content,\n      workflow_name: local.workflow_name,\n    },\n  },\n];"
+      },
+      "id": "9f1a2b30-0006-4c06-9a06-000000000007",
+      "name": "Detect Changes",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [0, -40]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "content-changed",
+              "leftValue": "={{ $json.changed }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "9f1a2b30-0006-4c06-9a06-000000000008",
+      "name": "Changed?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [220, -40]
+    },
+    {
+      "parameters": {
+        "resource": "file",
+        "operation": "edit",
+        "owner": {
+          "__rl": true,
+          "value": "={{ $('Backup Settings').first().json.github_owner }}",
+          "mode": "name"
+        },
+        "repository": {
+          "__rl": true,
+          "value": "={{ $('Backup Settings').first().json.github_repo }}",
+          "mode": "name"
+        },
+        "filePath": "={{ $json.file_path }}",
+        "fileContent": "={{ $json.content }}",
+        "commitMessage": "=backup: update {{ $json.workflow_name }} ({{ $now.toFormat('yyyy-MM-dd') }})"
+      },
+      "id": "9f1a2b30-0006-4c06-9a06-000000000009",
+      "name": "Update Backup File",
+      "type": "n8n-nodes-base.github",
+      "typeVersion": 1.1,
+      "position": [440, -120],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000
+    },
+    {
+      "parameters": {
+        "resource": "file",
+        "operation": "create",
+        "owner": {
+          "__rl": true,
+          "value": "={{ $('Backup Settings').first().json.github_owner }}",
+          "mode": "name"
+        },
+        "repository": {
+          "__rl": true,
+          "value": "={{ $('Backup Settings').first().json.github_repo }}",
+          "mode": "name"
+        },
+        "filePath": "={{ $('Backup Loop').item.json.file_path }}",
+        "fileContent": "={{ $('Backup Loop').item.json.content }}",
+        "commitMessage": "=backup: add {{ $('Backup Loop').item.json.workflow_name }} ({{ $now.toFormat('yyyy-MM-dd') }})"
+      },
+      "id": "9f1a2b30-0006-4c06-9a06-000000000010",
+      "name": "Create Backup File",
+      "type": "n8n-nodes-base.github",
+      "typeVersion": 1.1,
+      "position": [0, 200],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000
+    },
+    {
+      "parameters": {},
+      "id": "9f1a2b30-0006-4c06-9a06-000000000011",
+      "name": "No Change - Skip",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [440, 40]
+    }
+  ],
+  "connections": {
+    "Run Nightly": {
+      "main": [
+        [
+          {
+            "node": "Backup Settings",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Backup Settings": {
+      "main": [
+        [
+          {
+            "node": "List n8n Workflows",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "List n8n Workflows": {
+      "main": [
+        [
+          {
+            "node": "Prepare Backup Files",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Backup Files": {
+      "main": [
+        [
+          {
+            "node": "Backup Loop",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Backup Loop": {
+      "main": [
+        [
+          {
+            "node": "Backup Complete",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Get Existing Backup File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Existing Backup File": {
+      "main": [
+        [
+          {
+            "node": "Detect Changes",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Create Backup File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Detect Changes": {
+      "main": [
+        [
+          {
+            "node": "Changed?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Changed?": {
+      "main": [
+        [
+          {
+            "node": "Update Backup File",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "No Change - Skip",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Backup File": {
+      "main": [
+        [
+          {
+            "node": "Backup Loop",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Backup File": {
+      "main": [
+        [
+          {
+            "node": "Backup Loop",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "No Change - Skip": {
+      "main": [
+        [
+          {
+            "node": "Backup Loop",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": false
+  }
+}

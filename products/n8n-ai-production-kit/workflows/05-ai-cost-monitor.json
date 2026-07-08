@@ -1,0 +1,525 @@
+{
+  "name": "PK-05 AI Token And Cost Monitor",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "days",
+              "triggerAtHour": 6,
+              "triggerAtMinute": 0
+            }
+          ]
+        }
+      },
+      "id": "9f1a2b30-0005-4c05-9a05-000000000001",
+      "name": "Run Daily",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [-1320, 0]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "set-threshold",
+              "name": "daily_spend_alert_usd",
+              "value": 25,
+              "type": "number"
+            },
+            {
+              "id": "set-slack-channel",
+              "name": "slack_channel_id",
+              "value": "REPLACE_WITH_SLACK_CHANNEL_ID",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "9f1a2b30-0005-4c05-9a05-000000000020",
+      "name": "Cost Monitor Settings",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [-1100, 0],
+      "notes": "EDIT ME: your daily spend alert threshold (USD) and Slack channel ID."
+    },
+    {
+      "parameters": {
+        "content": "## 🛠 Setup (5 minutes)\n1. Open **Cost Monitor Settings**: set your daily alert threshold and Slack channel ID.\n2. Click **Fetch OpenAI Costs** → add a Header Auth credential: name `Authorization`, value `Bearer <your admin key>` (the word Bearer, a space, then the key).\n3. Click **Fetch Anthropic Costs** → add a Header Auth credential: name `x-api-key`, value your Anthropic admin key.\n4. Open **Check Idempotency Ledger** and pick your imported *PK-04 Idempotency Ledger* workflow.\n5. Connect Slack on the two alert nodes, then publish.\n\n⚠️ Provider note: these endpoints need **admin/organization** keys — regular API keys get a 401. Only track providers you use; you can delete the other branch.",
+        "height": 360,
+        "width": 400
+      },
+      "id": "9f1a2b30-0005-4c05-9a05-000000000021",
+      "name": "Setup Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [-1320, -420]
+    },
+    {
+      "parameters": {
+        "url": "=https://api.openai.com/v1/organization/costs?start_time={{ Math.floor(Date.now() / 1000) - 86400 }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "timeout": 20000
+        }
+      },
+      "id": "9f1a2b30-0005-4c05-9a05-000000000005",
+      "name": "Fetch OpenAI Costs",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [-660, -100],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000,
+      "onError": "continueErrorOutput",
+      "notes": "Requires an OpenAI ADMIN key in a Header Auth credential (Authorization: Bearer <admin key>). See INSTALL.md. Endpoint shape tested in COMPATIBILITY.md."
+    },
+    {
+      "parameters": {
+        "url": "=https://api.anthropic.com/v1/organizations/cost_report?starting_at={{ $now.minus({ days: 1 }).toFormat('yyyy-MM-dd') }}T00:00:00Z",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 20000
+        }
+      },
+      "id": "9f1a2b30-0005-4c05-9a05-000000000006",
+      "name": "Fetch Anthropic Costs",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [-660, 100],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000,
+      "onError": "continueErrorOutput",
+      "notes": "Requires an Anthropic ADMIN key in a Header Auth credential (x-api-key: <admin key>). See INSTALL.md. Endpoint shape tested in COMPATIBILITY.md."
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "={{ $('Cost Monitor Settings').first().json.slack_channel_id }}",
+          "mode": "id"
+        },
+        "text": "=:warning: AI cost monitor could not fetch provider usage\n*Source node:* {{ $prevNode.name }}\n*Error:* {{ $json.error ? String($json.error.message || JSON.stringify($json.error)).slice(0, 300) : 'unknown error' }}\nThe other provider (if configured) still runs. Check credentials and COMPATIBILITY.md.",
+        "otherOptions": {}
+      },
+      "id": "9f1a2b30-0005-4c05-9a05-000000000007",
+      "name": "Alert Provider Fetch Failure",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.2,
+      "position": [-440, 260],
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 2000,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Tag the raw response so the normalizer knows which provider it came from.\nreturn $input.all().map((item) => ({\n  json: { provider: 'openai', body: item.json },\n}));"
+      },
+      "id": "9f1a2b30-0005-4c05-9a05-000000000008",
+      "name": "Tag OpenAI Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-440, -100]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Tag the raw response so the normalizer knows which provider it came from.\nreturn $input.all().map((item) => ({\n  json: { provider: 'anthropic', body: item.json },\n}));"
+      },
+      "id": "9f1a2b30-0005-4c05-9a05-000000000009",
+      "name": "Tag Anthropic Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-440, 100]
+    },
+    {
+      "parameters": {
+        "mode": "append"
+      },
+      "id": "9f1a2b30-0005-4c05-9a05-000000000010",
+      "name": "Combine Provider Responses",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [-220, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Normalize provider cost responses into one record per provider per day.\n// Parsing is defensive on purpose: provider response shapes drift. When a\n// shape is unrecognized we record a parse_error instead of failing silently.\nconst records = [];\nconst usageDate = new Date(Date.now() - 86400000).toISOString().slice(0, 10);\n\nfunction sumOpenAi(body) {\n  let total = 0;\n  let found = false;\n  for (const bucket of (body && body.data) || []) {\n    for (const r of (bucket && bucket.results) || []) {\n      const v = Number(r && r.amount && r.amount.value);\n      if (Number.isFinite(v)) {\n        total += v;\n        found = true;\n      }\n    }\n  }\n  return found ? total : null;\n}\n\nfunction sumAnthropic(body) {\n  let total = 0;\n  let found = false;\n  for (const bucket of (body && body.data) || []) {\n    for (const r of (bucket && bucket.results) || []) {\n      let v = Number(r && r.amount);\n      if (!Number.isFinite(v)) v = Number(r && r.cost && r.cost.amount);\n      if (Number.isFinite(v)) {\n        total += v;\n        found = true;\n      }\n    }\n  }\n  return found ? total : null;\n}\n\nfor (const item of $input.all()) {\n  const provider = item.json.provider || 'unknown';\n  const body = item.json.body || {};\n  let cost = null;\n  let parseError = '';\n  try {\n    if (provider === 'openai') cost = sumOpenAi(body);\n    else if (provider === 'anthropic') cost = sumAnthropic(body);\n    if (cost === null) {\n      parseError =\n        'No cost values found in response. The provider API shape may have drifted - compare with COMPATIBILITY.md.';\n    }\n  } catch (e) {\n    parseError = String(e.message).slice(0, 300);\n  }\n  records.push({\n    json: {\n      provider,\n      usage_date: usageDate,\n      estimated_cost_usd: cost === null ? '' : Math.round(cost * 10000) / 10000,\n      parse_error: parseError,\n      event_key: 'aicost::' + provider + '::' + usageDate,\n      recorded_at: new Date().toISOString(),\n    },\n  });\n}\nreturn records;"
+      },
+      "id": "9f1a2b30-0005-4c05-9a05-000000000011",
+      "name": "Normalize And Price Usage",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [0, 0]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "REPLACE_WITH_PK04_IDEMPOTENCY_WORKFLOW_ID",
+          "mode": "id"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "source": "ai-cost-monitor",
+            "event_id": "={{ $json.event_key }}"
+          },
+          "matchingColumns": [],
+          "schema": []
+        },
+        "mode": "each",
+        "options": {}
+      },
+      "id": "9f1a2b30-0005-4c05-9a05-000000000012",
+      "name": "Check Idempotency Ledger",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [220, 0],
+      "notes": "Select the imported PK-04 Idempotency Ledger workflow here after import (see INSTALL.md). This is what makes repeated runs safe: same day + provider never logs cost twice."
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "is-duplicate",
+              "leftValue": "={{ $json.duplicate }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "9f1a2b30-0005-4c05-9a05-000000000013",
+      "name": "Is Duplicate?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [440, 0]
+    },
+    {
+      "parameters": {},
+      "id": "9f1a2b30-0005-4c05-9a05-000000000014",
+      "name": "Skip Duplicate",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [660, -140],
+      "notes": "Already recorded for this provider and day. Re-running the workflow is safe."
+    },
+    {
+      "parameters": {
+        "resource": "row",
+        "operation": "insert",
+        "dataTableId": {
+          "__rl": true,
+          "value": "ai_cost_log",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "provider": "={{ $('Normalize And Price Usage').item.json.provider }}",
+            "usage_date": "={{ $('Normalize And Price Usage').item.json.usage_date }}",
+            "estimated_cost_usd": "={{ $('Normalize And Price Usage').item.json.estimated_cost_usd || 0 }}",
+            "parse_error": "={{ $('Normalize And Price Usage').item.json.parse_error }}",
+            "event_key": "={{ $('Normalize And Price Usage').item.json.event_key }}",
+            "recorded_at": "={{ $('Normalize And Price Usage').item.json.recorded_at }}"
+          },
+          "schema": []
+        },
+        "options": {}
+      },
+      "id": "9f1a2b30-0005-4c05-9a05-000000000015",
+      "name": "Insert Cost Record",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [660, 140],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000
+    },
+    {
+      "parameters": {
+        "jsCode": "// Compare each provider's daily spend against the alert threshold.\nconst threshold = Number($('Cost Monitor Settings').first().json.daily_spend_alert_usd || 25);\nreturn $input.all().map((item) => {\n  const cost = Number(item.json.estimated_cost_usd);\n  return {\n    json: {\n      provider: item.json.provider,\n      usage_date: item.json.usage_date,\n      estimated_cost_usd: item.json.estimated_cost_usd,\n      parse_error: item.json.parse_error || '',\n      alert_threshold_usd: threshold,\n      over_threshold: Number.isFinite(cost) && cost > threshold,\n    },\n  };\n});"
+      },
+      "id": "9f1a2b30-0005-4c05-9a05-000000000016",
+      "name": "Evaluate Spend Threshold",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [880, 140]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "over-threshold",
+              "leftValue": "={{ $json.over_threshold }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "9f1a2b30-0005-4c05-9a05-000000000017",
+      "name": "Over Threshold?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [1100, 140]
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "={{ $('Cost Monitor Settings').first().json.slack_channel_id }}",
+          "mode": "id"
+        },
+        "text": "=:moneybag: AI spend over threshold\n*Provider:* {{ $json.provider }}\n*Date:* {{ $json.usage_date }}\n*Spend:* ${{ $json.estimated_cost_usd }} (threshold ${{ $json.alert_threshold_usd }})\nReview the ai_cost_log Data Table and the client workflows driving this spend.",
+        "otherOptions": {}
+      },
+      "id": "9f1a2b30-0005-4c05-9a05-000000000018",
+      "name": "Send Spend Alert",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.2,
+      "position": [1320, 40],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000
+    },
+    {
+      "parameters": {},
+      "id": "9f1a2b30-0005-4c05-9a05-000000000019",
+      "name": "Under Threshold",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [1320, 240]
+    }
+  ],
+  "connections": {
+    "Run Daily": {
+      "main": [
+        [
+          {
+            "node": "Cost Monitor Settings",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cost Monitor Settings": {
+      "main": [
+        [
+          {
+            "node": "Fetch OpenAI Costs",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Fetch Anthropic Costs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch OpenAI Costs": {
+      "main": [
+        [
+          {
+            "node": "Tag OpenAI Response",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Alert Provider Fetch Failure",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Anthropic Costs": {
+      "main": [
+        [
+          {
+            "node": "Tag Anthropic Response",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Alert Provider Fetch Failure",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tag OpenAI Response": {
+      "main": [
+        [
+          {
+            "node": "Combine Provider Responses",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tag Anthropic Response": {
+      "main": [
+        [
+          {
+            "node": "Combine Provider Responses",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Combine Provider Responses": {
+      "main": [
+        [
+          {
+            "node": "Normalize And Price Usage",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize And Price Usage": {
+      "main": [
+        [
+          {
+            "node": "Check Idempotency Ledger",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Idempotency Ledger": {
+      "main": [
+        [
+          {
+            "node": "Is Duplicate?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Duplicate?": {
+      "main": [
+        [
+          {
+            "node": "Skip Duplicate",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Insert Cost Record",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert Cost Record": {
+      "main": [
+        [
+          {
+            "node": "Evaluate Spend Threshold",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Evaluate Spend Threshold": {
+      "main": [
+        [
+          {
+            "node": "Over Threshold?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Over Threshold?": {
+      "main": [
+        [
+          {
+            "node": "Send Spend Alert",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Under Threshold",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": false
+  }
+}
