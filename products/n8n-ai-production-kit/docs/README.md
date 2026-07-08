@@ -33,11 +33,11 @@ workflows safer to run.
 
 Docs: `INSTALL.md` (start here), `TROUBLESHOOTING.md`, `COMPATIBILITY.md`,
 `CHANGELOG.md`, `LICENSE-CHECK.md`, `CLIENT-HANDOFF.md`.
-Test data: `test-data/sample-data.json` — fake records only.
+Test data: `test-data/sample-data.json` - fake records only.
 
 ## Hardening Patterns Baked In
 
-- Input validation after every trigger — bad calls fail loudly, not silently.
+- Input validation after every trigger - bad calls fail loudly, not silently.
 - Retries on external HTTP calls, capped to short waits.
 - Error branches on nodes that talk to the outside world.
 - Dead-letter storage for failed payloads, with manual replay.
@@ -47,10 +47,10 @@ Test data: `test-data/sample-data.json` — fake records only.
 
 ## Quick Start
 
-1. Read `INSTALL.md` and follow it top to bottom (about 20–30 minutes).
+1. Read `INSTALL.md` and follow it top to bottom (about 20-30 minutes).
 2. Import the 8 workflow files into n8n (n8n Cloud or self-hosted).
 3. Run PK-00 once to create the local n8n Data Tables.
-4. Type your values into the purple **Settings** node on each canvas —
+4. Type your values into the purple **Settings** node on each canvas -
    no environment variables, no config files.
 5. Connect your own accounts (Slack, SMTP, GitHub, AI providers) by clicking
    the nodes that need them.
@@ -59,14 +59,14 @@ Test data: `test-data/sample-data.json` — fake records only.
 
 ## Design Choices
 
-- **No server required.** Works on n8n Cloud in the browser — no Docker, no
+- **No server required.** Works on n8n Cloud in the browser - no Docker, no
   database, no command line. (Self-hosting still works; see INSTALL Appendix A.)
 - **Standard n8n nodes only.** Nothing to install, nothing to trust blindly.
 - **All settings live on the canvas** in visible Settings nodes with a
-  Setup Note on every workflow — if you can fill in a form, you can
+  Setup Note on every workflow - if you can fill in a form, you can
   configure this kit.
 - **n8n Data Tables as default storage** so setup stays local and free. Swap
-  in Postgres for higher volume — the workflows isolate storage in single
+  in Postgres for higher volume - the workflows isolate storage in single
   nodes to make that swap easy.
 - **Optional license check.** Gumroad already gates file delivery. If you later
   want extra purchase verification inside workflows, use the optional worker in

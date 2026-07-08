@@ -6,7 +6,7 @@
 ![GitHub stars](https://img.shields.io/github/stars/Stava-Java/n8n-ai-production-kit?style=social)
 ![Downloads](https://img.shields.io/github/downloads/Stava-Java/n8n-ai-production-kit/total)
 
-> Turn fragile AI demo workflows into client-safe production systems — error
+> Turn fragile AI demo workflows into client-safe production systems - error
 > handling, retries, dead-letter replay, idempotency, and cost tracking,
 > already built for you. **Free, open-source, and runs on n8n Cloud with no
 > database, no server, and no code.**
@@ -17,13 +17,13 @@
 
 Most n8n demos work once in the editor, then fall over in production: no
 retries, no dead-letter storage, no idempotency, no observability, no backup.
-The patterns to fix this *do* exist — but they're scattered across blog posts
+The patterns to fix this *do* exist - but they're scattered across blog posts
 and single-trick templates, and almost all of them assume you'll run Postgres
 or Redis.
 
 This kit assembles the whole production operating layer into **8 workflows
 that work together**, fully documented, storing everything in **n8n's built-in
-Data Tables** — so there's nothing to install and it runs on n8n Cloud as-is.
+Data Tables** - so there's nothing to install and it runs on n8n Cloud as-is.
 If you can fill in a form, you can use it.
 
 ## What's inside
@@ -48,7 +48,7 @@ data for safe testing.
 
 ## Quick start (about 20 minutes)
 
-1. **Get n8n** — sign up free at [n8n.io](https://n8n.io) (runs in your
+1. **Get n8n** - sign up free at [n8n.io](https://n8n.io) (runs in your
    browser) or self-host. No other accounts required to start.
 2. **Download** the latest kit ZIP from the
    [Releases page](https://github.com/Stava-Java/n8n-ai-production-kit/releases)
@@ -56,7 +56,7 @@ data for safe testing.
 3. **Import** the 8 files from `products/n8n-ai-production-kit/workflows/`
    into n8n (Workflows → Import from File).
 4. **Run PK-00 once** to create the storage tables.
-5. **Fill in the purple Settings node** on each workflow — that's your config
+5. **Fill in the purple Settings node** on each workflow - that's your config
    (Slack channel, thresholds, etc.). No environment variables.
 
 Full step-by-step with screenshots:
@@ -72,23 +72,23 @@ workflow also has a plain-English Setup Note right on its canvas.
 
 ## Free & open
 
-This kit is **MIT-licensed** — use it in client work, fork it, build on it,
+This kit is **MIT-licensed** - use it in client work, fork it, build on it,
 whatever helps. It costs nothing.
 
 If it saves you time, the one thing that genuinely helps this project reach
-more people is a **⭐ star** — it's how others find it.
+more people is a **⭐ star** - it's how others find it.
 
 Found a bug or have an idea? [Open an issue](https://github.com/Stava-Java/n8n-ai-production-kit/issues)
 or read [CONTRIBUTING.md](CONTRIBUTING.md). Contributions welcome.
 
 ## Advanced
 
-- **Self-hosting with Docker** is optional — see
+- **Self-hosting with Docker** is optional - see
   [INSTALL Appendix A](products/n8n-ai-production-kit/docs/INSTALL.md).
 - **Higher volume?** Swap the Data Table nodes for Postgres; every read/write
   is isolated in a single node to make that easy.
 - **Runtime license checks** (`shared/license-worker/`) are optional and off
-  by default — you don't need them.
+  by default - you don't need them.
 
 ---
 

@@ -75,7 +75,7 @@
       "retryOnFail": true,
       "maxTries": 3,
       "waitBetweenTries": 3000,
-      "notes": "Uses the built-in n8n API node with an n8n API credential — works on n8n Cloud and self-hosted. No environment variables needed."
+      "notes": "Uses the built-in n8n API node with an n8n API credential - works on n8n Cloud and self-hosted. No environment variables needed."
     },
     {
       "parameters": {

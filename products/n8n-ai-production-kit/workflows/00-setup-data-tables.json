@@ -11,7 +11,7 @@
     },
     {
       "parameters": {
-        "content": "## 🛠 Run me first (one click)\nClick **Execute workflow** once. That's the entire setup.\n\nThis creates the kit's four storage tables inside n8n itself — no Google account, no database, no server needed.\n\nAfterwards, check the left sidebar → **Data Tables**: you should see error_log, dead_letter, idempotency_ledger, and ai_cost_log. Safe to run again — it never duplicates tables.",
+        "content": "## 🛠 Run me first (one click)\nClick **Execute workflow** once. That's the entire setup.\n\nThis creates the kit's four storage tables inside n8n itself - no Google account, no database, no server needed.\n\nAfterwards, check the left sidebar → **Data Tables**: you should see error_log, dead_letter, idempotency_ledger, and ai_cost_log. Safe to run again - it never duplicates tables.",
         "height": 300,
         "width": 360
       },

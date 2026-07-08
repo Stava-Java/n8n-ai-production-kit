@@ -1,4 +1,4 @@
-# Listing Images — FINAL
+# Listing Images - FINAL
 
 The five numbered PNGs in this folder are the final Gumroad listing images,
 assembled and cropped from the 2026-07-06 capture session. Upload them in
@@ -12,12 +12,12 @@ this order:
 | 4 | `04-error-log-redacted.png` | error_log rows where a planted secret shows as `[REDACTED]` |
 | 5 | `05-dead-letter-records.png` | stored dead-letter payloads with fake business data |
 
-The unnumbered `Screenshot ...png` files are the raw originals — keep or
+The unnumbered `Screenshot ...png` files are the raw originals - keep or
 delete, they are not uploaded.
 
 Rules that were applied (keep applying if you ever re-shoot):
 
 - Fake data only in every frame: no real keys, emails, client names.
 - No browser tabs/bookmarks/URL bar in the final crops.
-- The red credential warnings visible on some nodes are intentional — the
+- The red credential warnings visible on some nodes are intentional - the
   kit ships credential-free and that is what a fresh import looks like.

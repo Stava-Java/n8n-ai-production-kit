@@ -1,14 +1,14 @@
 # Installation Guide
 
 No server, no Docker, no database, no command line. If you can use n8n's
-editor, you can install this kit. Time: 20–30 minutes.
+editor, you can install this kit. Time: 20-30 minutes.
 
 ## 1. Get n8n (skip if you already have it)
 
-**Recommended: n8n Cloud.** Go to n8n.io, create an account, done — n8n runs
+**Recommended: n8n Cloud.** Go to n8n.io, create an account, done - n8n runs
 in your browser. The kit is verified on n8n 2.x.
 
-**Advanced alternative:** self-hosting with Docker works too — see Appendix A
+**Advanced alternative:** self-hosting with Docker works too - see Appendix A
 at the bottom. Everything else in this guide is identical either way.
 
 ## 2. Import The 8 Workflow Files
@@ -33,12 +33,12 @@ what to click. This guide is the same information in one place.
 Open **PK-00 Setup Data Tables** and click **Execute workflow**. That creates
 the kit's four storage tables inside n8n itself. Check the left sidebar →
 **Data Tables**: you should see `error_log`, `dead_letter`,
-`idempotency_ledger`, and `ai_cost_log`. Safe to re-run — it never duplicates.
+`idempotency_ledger`, and `ai_cost_log`. Safe to re-run - it never duplicates.
 
 ## 4. Type Your Settings Into The Settings Nodes
 
 No environment variables. Each workflow that needs configuration has a
-purple **Settings** node — open it, type your values, save:
+purple **Settings** node - open it, type your values, save:
 
 | Workflow | Node | What to type |
 | --- | --- | --- |
@@ -48,12 +48,12 @@ purple **Settings** node — open it, type your values, save:
 | PK-05 | Cost Monitor Settings | Daily spend alert in USD, Slack channel ID |
 | PK-06 | Backup Settings | Your GitHub username and backup repo name |
 
-Tip: a Slack channel ID looks like `C0123456789` — right-click the channel in
+Tip: a Slack channel ID looks like `C0123456789` - right-click the channel in
 Slack → View channel details → bottom of the About tab.
 
 ## 5. Connect Your Accounts (credentials)
 
-The kit ships with **no credentials** — you connect your own accounts by
+The kit ships with **no credentials** - you connect your own accounts by
 clicking each node and picking "Create new credential":
 
 | Where | Credential | Notes |
@@ -66,11 +66,11 @@ clicking each node and picking "Create new credential":
 | Fetch Anthropic Costs (PK-05) | Header Auth | Name `x-api-key`, value `<your Anthropic ADMIN key>` |
 
 Only set up what you use: no GitHub? Skip PK-06. Only OpenAI? Delete the
-Anthropic branch in PK-05. The core kit (PK-00–PK-04, PK-07) needs at most
+Anthropic branch in PK-05. The core kit (PK-00-PK-04, PK-07) needs at most
 Slack + email.
 
 ⚠️ The PK-05 provider endpoints require **admin/organization** API keys.
-Regular project keys get a 401 — that's the provider's rule, not a bug.
+Regular project keys get a 401 - that's the provider's rule, not a bug.
 
 ## 6. Wire The Workflows Together
 
@@ -81,7 +81,7 @@ Regular project keys get a 401 — that's the provider's rule, not a bug.
    **Error Workflow** → pick *PK-01 Central Error Logger*.
 3. **Publish** (top-right button) PK-01, PK-02, PK-04, PK-05, and PK-06.
    n8n imports files as drafts, and a draft cannot be called by another
-   workflow or run on a schedule. PK-00, PK-03, and PK-07 stay manual —
+   workflow or run on a schedule. PK-00, PK-03, and PK-07 stay manual -
    drafts run fine from the editor's Execute button.
 
 ## 7. Test With Fake Data (before connecting anything real)
@@ -95,13 +95,13 @@ Regular project keys get a 401 — that's the provider's rule, not a bug.
 2. **PK-02:** same pattern with values from `dead_letter_examples`. Confirm a
    `pending` row appears in the `dead_letter` Data Table.
 3. **PK-03:** click Execute. The fake row (no real replay URL) ends as
-   `skipped_no_target` or increments `retry_count` — both prove the status
+   `skipped_no_target` or increments `retry_count` - both prove the status
    tracking works.
 4. **PK-01:** in a scratch workflow set the Error Workflow to PK-01, add a
    Code node containing `throw new Error('test')`, run it. Confirm the row in
    `error_log` and the Slack alert.
 5. **PK-07:** click Execute. Every kit workflow should report `pass`.
-6. **PK-06:** run once against an empty repo — files appear. Run again — no
+6. **PK-06:** run once against an empty repo - files appear. Run again - no
    new commits (that's the change detection working).
 
 ## 8. Go-Live Checklist
@@ -118,12 +118,12 @@ Regular project keys get a 401 — that's the provider's rule, not a bug.
 If you prefer running n8n on your own machine: install Docker Desktop, copy
 `.env.example` to `.env` (set your timezone), then from the kit folder run
 `docker compose up -d` and open http://localhost:5678. The included
-`docker-compose.yml` is all you need — the kit uses no special server flags.
+`docker-compose.yml` is all you need - the kit uses no special server flags.
 Continue from §2.
 
 ## Appendix B: Higher Volume Storage
 
 n8n Data Tables are perfect for getting started. If you outgrow them
 (hundreds of thousands of rows, heavy concurrent writes), replace the Data
-Table nodes with Postgres nodes and keep the same column names — every
+Table nodes with Postgres nodes and keep the same column names - every
 read/write is isolated in a single node to make that swap painless.

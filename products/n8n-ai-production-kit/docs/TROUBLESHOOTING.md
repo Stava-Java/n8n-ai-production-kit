@@ -9,17 +9,17 @@ text (redact anything sensitive first).
 **"Data table not found" or "specified column does not exist"**
 PK-00 was not run, the table name was changed, or the column names do not
 match exactly (`error_log`, `dead_letter`, `idempotency_ledger`,
-`ai_cost_log` — lowercase with underscores). Open **PK-00 Setup Data Tables**,
+`ai_cost_log` - lowercase with underscores). Open **PK-00 Setup Data Tables**,
 click Execute once, then check the **Data Tables** sidebar.
 
 **"Workflow is not active and cannot be executed" from an Execute Workflow node**
 n8n imports files as drafts, and drafts cannot be called by other workflows.
-Publish PK-02 and PK-04 (and PK-01 so it can run as the error workflow) —
+Publish PK-02 and PK-04 (and PK-01 so it can run as the error workflow) -
 INSTALL.md §6.
 
 **Alerts have wrong/empty channel, or emails go nowhere**
 You skipped a Settings node. Every configurable workflow has a purple
-Settings node on the canvas (INSTALL.md §4) — open it and replace the
+Settings node on the canvas (INSTALL.md §4) - open it and replace the
 `REPLACE_WITH_...` placeholders with your real values.
 
 **A node fails with "no credentials set"**
@@ -29,14 +29,14 @@ accounts (INSTALL.md §5).
 
 **A schedule never fires**
 The workflow is not published, or (self-host only) the container timezone is
-off — check `GENERIC_TIMEZONE` in your `.env`.
+off - check `GENERIC_TIMEZONE` in your `.env`.
 
 ## PK-01 Central Error Logger
 
 **Errors happen but nothing is logged**
 PK-01 must be set as the *Error Workflow* of the failing workflow (its
 Settings → Error Workflow), and PK-01 must be published. Setting it once does
-not apply to workflows created afterwards — check each one.
+not apply to workflows created afterwards - check each one.
 
 **Slack alert missing, email arrived**
 That is the designed fallback. Fix the Slack side: bot not in the channel,
@@ -68,7 +68,7 @@ Use a stable per-event value: an invoice ID, a webhook delivery ID, a
 **Duplicates still appear in downstream data**
 The ledger only reports; the *caller* must branch on `duplicate` and skip.
 Check the IF node after your Execute Workflow call. Also note n8n Data Tables
-do not enforce a unique constraint — two runs at the exact same second can
+do not enforce a unique constraint - two runs at the exact same second can
 race. For strict guarantees, swap the ledger storage to Postgres with a
 UNIQUE index (INSTALL.md Appendix B).
 
@@ -108,4 +108,4 @@ that the repo files are valid JSON.
 **PK-07 flags a workflow but the "secret" is a placeholder**
 The scanner is intentionally paranoid. Rename placeholders so they do not
 match real key shapes (use `REPLACE_WITH_...`) and use `@example.com` for
-sample emails — then it passes.
+sample emails - then it passes.

@@ -4,7 +4,7 @@ Format per release: date, changed workflows/nodes, and tested provider
 versions (see COMPATIBILITY.md for the full matrix). Buyers are emailed
 through Gumroad whenever an updated ZIP is published.
 
-## 0.2.0 — 2026-07-06 (pre-release)
+## 0.2.0 - 2026-07-06 (pre-release)
 
 Made the kit fully non-technical friendly: no server, no Docker, no
 environment variables, no command line. Runs on n8n Cloud unmodified.
@@ -19,7 +19,7 @@ environment variables, no command line. Runs on n8n Cloud unmodified.
 - PK-06 GitHub Backup: workflow listing now uses the built-in **n8n API
   node** with an n8n API credential instead of an HTTP call + env vars.
 - PK-07 Security Scanner: rebuilt to scan **all workflows in the instance
-  via the n8n API** instead of reading exported files from disk — works on
+  via the n8n API** instead of reading exported files from disk - works on
   n8n Cloud, needs no file mounts or `EXPORT_SCAN_DIR`.
 - Because no `$env` or filesystem access remains, the previously required
   server flags (`N8N_BLOCK_ENV_ACCESS_IN_NODE`, `N8N_RESTRICT_FILE_ACCESS_TO`)
@@ -34,28 +34,28 @@ environment variables, no command line. Runs on n8n Cloud unmodified.
   (success + skipped paths), and PK-01 error logging with secret redaction
   all pass using Settings nodes on a default n8n with no special flags.
 
-## 0.1.0 — 2026-07-05 (pre-release)
+## 0.1.0 - 2026-07-05 (pre-release)
 
 Initial build. Not yet published.
 
 **Added**
 
-- PK-01 Central Error Logger — global error workflow, sanitized log to
+- PK-01 Central Error Logger - global error workflow, sanitized log to
   `error_log`, Slack alert with SMTP email fallback.
-- PK-00 Setup Data Tables — creates `error_log`, `dead_letter`,
+- PK-00 Setup Data Tables - creates `error_log`, `dead_letter`,
   `idempotency_ledger`, and `ai_cost_log` inside n8n with no Google Cloud or
   external database.
-- PK-02 Dead Letter Queue Writer — validated sub-workflow storing failed
+- PK-02 Dead Letter Queue Writer - validated sub-workflow storing failed
   payloads to `dead_letter` with `pending` status.
-- PK-03 Manual Dead Letter Replay — capped retries (`DLQ_MAX_RETRIES`),
+- PK-03 Manual Dead Letter Replay - capped retries (`DLQ_MAX_RETRIES`),
   per-row statuses: `replayed`, `pending`, `failed`, `skipped_no_target`.
-- PK-04 Idempotency Ledger — deterministic FNV-1a event keys over
+- PK-04 Idempotency Ledger - deterministic FNV-1a event keys over
   `source::event_id`, duplicate reporting for callers.
-- PK-05 AI Token And Cost Monitor — daily OpenAI + Anthropic cost pull;
+- PK-05 AI Token And Cost Monitor - daily OpenAI + Anthropic cost pull;
   idempotent logging via PK-04; threshold alerts to Slack.
-- PK-06 GitHub Workflow Backup — nightly export of all workflows through the
+- PK-06 GitHub Workflow Backup - nightly export of all workflows through the
   n8n public API; JSON-normalized change detection; commits only real diffs.
-- PK-07 Pre-Export Security Scanner — pattern scan of exported JSON for keys,
+- PK-07 Pre-Export Security Scanner - pattern scan of exported JSON for keys,
   tokens, and non-example email addresses with masked previews.
 - Storage converted to n8n Data Tables by default, removing Google Sheets,
   Google Drive API, and Google Cloud OAuth setup from the install path.

@@ -11,7 +11,7 @@
     },
     {
       "parameters": {
-        "content": "## 🛠 How to use\n1. Click **List Workflows To Scan** → add an **n8n API** credential once (in n8n: Settings → n8n API → Create key, paste it in).\n2. Click **Execute workflow**.\n\nIt scans **every workflow in this n8n** for anything that looks like an API key, token, or real email address — run it before you export workflows to share with a client or publish anywhere.\n\nGreen **PASS** node = clean. Red-flagged? Open **FAIL — Review Findings** to see which workflow and a masked preview of each hit.",
+        "content": "## 🛠 How to use\n1. Click **List Workflows To Scan** → add an **n8n API** credential once (in n8n: Settings → n8n API → Create key, paste it in).\n2. Click **Execute workflow**.\n\nIt scans **every workflow in this n8n** for anything that looks like an API key, token, or real email address - run it before you export workflows to share with a client or publish anywhere.\n\nGreen **PASS** node = clean. Red-flagged? Open **FAIL - Review Findings** to see which workflow and a masked preview of each hit.",
         "height": 340,
         "width": 400
       },

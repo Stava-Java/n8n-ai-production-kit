@@ -1,7 +1,7 @@
 # Gumroad License Worker
 
 A tiny Cloudflare Worker that verifies Gumroad license keys. No database, no
-paid backend — the free tier covers early sales volume. The n8n workflows call
+paid backend - the free tier covers early sales volume. The n8n workflows call
 this worker as their first protected step instead of calling Gumroad directly,
 so validation logic has one home when it changes later.
 
@@ -16,7 +16,7 @@ so validation logic has one home when it changes later.
 
 ## Known Limitation
 
-Gumroad license keys prove purchase. They do not stop piracy — a determined
+Gumroad license keys prove purchase. They do not stop piracy - a determined
 buyer can delete the license node from an n8n workflow. This is friction and
 purchase verification, not copy protection. Do not build more licensing
 infrastructure until piracy is a demonstrated, revenue-relevant problem.
@@ -47,7 +47,7 @@ curl -s -X POST https://gumroad-license-worker.<you>.workers.dev \
 ```
 
 After your first (test) sale on Gumroad, repeat with the real license key from
-the receipt — it should return `{"valid":true,...}`. Gumroad also lets you
+the receipt - it should return `{"valid":true,...}`. Gumroad also lets you
 generate a test purchase from the product dashboard.
 
 ## How n8n Uses It
@@ -67,5 +67,5 @@ copy into other workflows.
 
 ## Cost Controls
 
-- Free tier: 100,000 requests/day — orders of magnitude above early volume.
+- Free tier: 100,000 requests/day - orders of magnitude above early volume.
 - Only move to the $5/month plan if the free tier actually becomes limiting.

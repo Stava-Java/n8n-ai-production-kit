@@ -154,7 +154,7 @@
       "maxTries": 3,
       "waitBetweenTries": 3000,
       "onError": "continueErrorOutput",
-      "notes": "Retries are capped to short waits. If the target needs auth, attach an n8n credential here — never paste a key into the URL or headers."
+      "notes": "Retries are capped to short waits. If the target needs auth, attach an n8n credential here - never paste a key into the URL or headers."
     },
     {
       "parameters": {

@@ -82,7 +82,7 @@
     },
     {
       "parameters": {
-        "content": "## 🛠 Setup (2 minutes)\n1. Open the **Alert Settings** node and type your Slack channel ID and alert emails.\n2. Click the **Send Slack Alert** node and connect your Slack account.\n3. Click **Email Fallback Alert** and connect any email (SMTP) account.\n4. Publish this workflow.\n5. In every workflow you want protected: Settings → Error Workflow → pick this one.\n\nThat's it — failures now get logged and alerted automatically.",
+        "content": "## 🛠 Setup (2 minutes)\n1. Open the **Alert Settings** node and type your Slack channel ID and alert emails.\n2. Click the **Send Slack Alert** node and connect your Slack account.\n3. Click **Email Fallback Alert** and connect any email (SMTP) account.\n4. Publish this workflow.\n5. In every workflow you want protected: Settings → Error Workflow → pick this one.\n\nThat's it - failures now get logged and alerted automatically.",
         "height": 300,
         "width": 360
       },

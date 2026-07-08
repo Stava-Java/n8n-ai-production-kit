@@ -16,13 +16,13 @@ discovery.
 
 | Kit | Date | Status |
 | --- | --- | --- |
-| 0.1.0 | 2026-07-05 | Pre-release — verification pass pending |
+| 0.1.0 | 2026-07-05 | Pre-release - verification pass pending |
 
 ## n8n
 
 | Component | Tested version | TESTED-ON | Notes |
 | --- | --- | --- | --- |
-| n8n (Docker, self-hosted) | 2.28.6 | 2026-07-06 | Imported workflows are drafts and must be published (INSTALL.md §6). No special server flags needed — the kit uses no environment variables |
+| n8n (Docker, self-hosted) | 2.28.6 | 2026-07-06 | Imported workflows are drafts and must be published (INSTALL.md §6). No special server flags needed - the kit uses no environment variables |
 | n8n API (via built-in n8n node) | v1 | (pending) | Used by PK-06 and PK-07; needs an n8n API credential |
 | n8n Data Tables | Data Table node v1.1 (table create + row insert/get/update) | 2026-07-06 | Used by PK-00..PK-05; verified live on 2.28.6: create, insert, filtered get, filtered update |
 
@@ -38,13 +38,13 @@ discovery.
 
 ## Response Shapes The Kit Assumes
 
-**OpenAI `/v1/organization/costs`** — bucketed page:
+**OpenAI `/v1/organization/costs`** - bucketed page:
 
 ```json
 { "object": "page", "data": [ { "results": [ { "amount": { "value": 1.23, "currency": "usd" } } ] } ] }
 ```
 
-**Anthropic `/v1/organizations/cost_report`** — bucketed report where each
+**Anthropic `/v1/organizations/cost_report`** - bucketed report where each
 result exposes `amount` (or `cost.amount`):
 
 ```json
@@ -52,7 +52,7 @@ result exposes `amount` (or `cost.amount`):
 ```
 
 If a provider changes these shapes, PK-05 records `parse_error` on the row
-instead of failing the run — that is your signal to check this file for an
+instead of failing the run - that is your signal to check this file for an
 update.
 
 ## Known Constraints
@@ -61,7 +61,7 @@ update.
   error workflow (PK-01) must be published before other workflows can call them.
 - The kit deliberately uses no `$env` variables and no filesystem access, so
   n8n 2.x hardening defaults (env access blocked, file allowlist) never
-  affect it — and it runs unmodified on n8n Cloud.
+  affect it - and it runs unmodified on n8n Cloud.
 - OpenAI and Anthropic **usage/cost endpoints require admin/organization
   keys.** Project or standard keys return 401/403.
 - Gumroad license verification does not prevent piracy; it verifies purchase

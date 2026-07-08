@@ -49,7 +49,7 @@
     },
     {
       "parameters": {
-        "content": "## 🛠 Setup (5 minutes)\n1. Open **Cost Monitor Settings**: set your daily alert threshold and Slack channel ID.\n2. Click **Fetch OpenAI Costs** → add a Header Auth credential: name `Authorization`, value `Bearer <your admin key>` (the word Bearer, a space, then the key).\n3. Click **Fetch Anthropic Costs** → add a Header Auth credential: name `x-api-key`, value your Anthropic admin key.\n4. Open **Check Idempotency Ledger** and pick your imported *PK-04 Idempotency Ledger* workflow.\n5. Connect Slack on the two alert nodes, then publish.\n\n⚠️ Provider note: these endpoints need **admin/organization** keys — regular API keys get a 401. Only track providers you use; you can delete the other branch.",
+        "content": "## 🛠 Setup (5 minutes)\n1. Open **Cost Monitor Settings**: set your daily alert threshold and Slack channel ID.\n2. Click **Fetch OpenAI Costs** → add a Header Auth credential: name `Authorization`, value `Bearer <your admin key>` (the word Bearer, a space, then the key).\n3. Click **Fetch Anthropic Costs** → add a Header Auth credential: name `x-api-key`, value your Anthropic admin key.\n4. Open **Check Idempotency Ledger** and pick your imported *PK-04 Idempotency Ledger* workflow.\n5. Connect Slack on the two alert nodes, then publish.\n\n⚠️ Provider note: these endpoints need **admin/organization** keys - regular API keys get a 401. Only track providers you use; you can delete the other branch.",
         "height": 360,
         "width": 400
       },

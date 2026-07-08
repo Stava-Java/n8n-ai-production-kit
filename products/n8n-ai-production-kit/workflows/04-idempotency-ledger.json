@@ -18,7 +18,7 @@
     },
     {
       "parameters": {
-        "content": "## 🛠 How to use\nNo settings needed — just **publish** this workflow.\n\nFrom any workflow, add an **Execute Workflow** node pointing here and send:\n- `source` — a stable name for the process (e.g. \"stripe-invoice-sync\")\n- `event_id` — a stable ID for the event (e.g. the invoice ID)\n\nIt answers `duplicate: true/false`. Add an IF node after the call and skip the item when duplicate is true — that's what stops double-charging, double-sending, and double-logging on re-runs.",
+        "content": "## 🛠 How to use\nNo settings needed - just **publish** this workflow.\n\nFrom any workflow, add an **Execute Workflow** node pointing here and send:\n- `source` - a stable name for the process (e.g. \"stripe-invoice-sync\")\n- `event_id` - a stable ID for the event (e.g. the invoice ID)\n\nIt answers `duplicate: true/false`. Add an IF node after the call and skip the item when duplicate is true - that's what stops double-charging, double-sending, and double-logging on re-runs.",
         "height": 320,
         "width": 380
       },

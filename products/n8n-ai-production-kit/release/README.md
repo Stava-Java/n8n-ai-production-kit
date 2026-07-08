@@ -22,5 +22,5 @@ Before uploading to Gumroad (non-negotiable, from the product plan):
       time inside n8n.
 - [ ] Bump CHANGELOG.md and the version here, then rebuild.
 
-Built ZIPs are disposable artifacts — do not edit a ZIP by hand; fix the
+Built ZIPs are disposable artifacts - do not edit a ZIP by hand; fix the
 source and rebuild.

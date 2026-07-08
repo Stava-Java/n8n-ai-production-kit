@@ -22,8 +22,8 @@ Search every exported file for these strings and patterns:
 - Real email addresses (anything not `@example.com` / `@example.org`)
 - Real customer or client names, domains, and IDs
 
-A hit is not automatically a failure — `"authentication": "genericCredentialType"`
-is fine — but every hit must be looked at and explained.
+A hit is not automatically a failure - `"authentication": "genericCredentialType"`
+is fine - but every hit must be looked at and explained.
 
 ## Structural Checks
 

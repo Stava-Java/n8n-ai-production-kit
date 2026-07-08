@@ -23,10 +23,10 @@ at 11pm."
 Every credential must be owned by the client before handoff is complete.
 
 - [ ] All API keys created under **client** accounts, not yours.
-- [ ] Client billing attached to OpenAI/Anthropic/etc. — never your cards.
+- [ ] Client billing attached to OpenAI/Anthropic/etc. - never your cards.
 - [ ] Your personal/agency credentials removed from the instance.
 - [ ] Client has admin access to the n8n instance and the storage backend.
-- [ ] Secrets live in n8n credentials or environment variables only —
+- [ ] Secrets live in n8n credentials or environment variables only -
       the client knows never to paste keys into nodes.
 
 ## 3. What "Normal" Looks Like
@@ -37,11 +37,11 @@ Every credential must be owned by the client before handoff is complete.
 - The `dead_letter` Data Table is empty or all rows say `replayed`.
 - The backup repo gets commits only when workflows actually change.
 
-## 4. When An Alert Fires — Client Runbook
+## 4. When An Alert Fires - Client Runbook
 
 1. **Workflow failure alert:** open the execution link in the alert. If the
    cause is external (API down), wait and re-run. If data was lost, check the
-   `dead_letter` Data Table — the payload is stored there.
+   `dead_letter` Data Table - the payload is stored there.
 2. **Dead letter stored:** fix the root cause (or wait out the outage), then
    open *PK-03 Manual Dead Letter Replay* and click Execute. Check the Data Table:
    `replayed` = done; `failed` = call [support contact].
